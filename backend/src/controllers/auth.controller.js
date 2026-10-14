@@ -7,6 +7,8 @@ import {
   sendError,
 } from "../utils/apiResponse.js";
 
+import { configs } from "../configs/config.js";
+
 /**
  * @POST
  * @route /api/auth/register
@@ -131,4 +133,35 @@ export async function loginController(req, res) {
 
     return sendError(res, "Internal server error", 500);
   }
+}
+
+/**
+ * @POST
+ * @route /api/auth/logout
+ * @desc Logout an existing user
+ * @access Protected 
+ */
+
+export async function logoutController(req, res) {
+  try {
+    res.clearCookie("accessToken", {
+      httpOnly: true,
+      secure: configs.NODE_ENV === "production",
+      sameSite: "lax",
+    });
+
+    res.clearCookie("refreshToken", {
+      httpOnly: true,
+      secure: configs.NODE_ENV === "production",
+      sameSite: "lax",
+    })
+
+    return sendSuccess(res, "Logout Successful", 200)
+
+  } catch (error) {
+    console.error("Logout error:", error);
+
+    return sendError(res, "Internal Server error", 500)
+  }
+
 }
