@@ -1,11 +1,15 @@
 
 import User from "../models/user.model.js";
 import bcrypt from "bcrypt";
+import jwt from "jsonwebtoken";
+import { generateAccessToken } from "../utils/generateToken.js";
 import { setAuthCookies } from "../utils/setAuthCookies.js";
 import {
   sendSuccess,
   sendError,
 } from "../utils/apiResponse.js";
+
+import { configs } from "../configs/config.js";
 
 /**
  * @POST
@@ -129,6 +133,108 @@ export async function loginController(req, res) {
   } catch (error) {
     console.error("Login error:", error);
 
+    return sendError(res, "Internal server error", 500);
+  }
+}
+
+/**
+ * @POST
+ * @route /api/auth/logout
+ * @desc Logout an existing user
+ * @access Protected 
+ */
+
+export async function logoutController(req, res) {
+  try {
+    res.clearCookie("accessToken", {
+      httpOnly: true,
+      secure: configs.NODE_ENV === "production",
+      sameSite: "lax",
+    });
+
+    res.clearCookie("refreshToken", {
+      httpOnly: true,
+      secure: configs.NODE_ENV === "production",
+      sameSite: "lax",
+    })
+
+    return sendSuccess(res, "Logout Successful", 200)
+
+  } catch (error) {
+    console.error("Logout error:", error);
+
+    return sendError(res, "Internal Server error", 500)
+  }
+
+}
+
+
+/**
+ * @GET
+ * @ROUTE /api/auth/me
+ * @desc Get current logged in user profile
+ * @access Protected
+ */
+export async function getMeController(req, res) {
+  try {
+    const user = await User.findById(req.user.id);
+    if (!user) {
+      return sendError(res, "User not found", 404)
+    }
+    return sendSuccess(res, "User Profile", 200, {
+      id: user._id,
+      fullname: user.fullname,
+      email: user.email,
+      phone: user.phone,
+      role: user.role,
+      profilePicture: user.profilePicture,
+    });
+
+  } catch (error) {
+    console.error("Get profile error:", error);
+    return sendError(res, "Internal server error", 500);
+
+  }
+
+}
+
+
+/**
+ * @POST
+ * @route /api/auth/refresh-token
+ * @desc Generate a new access token
+ * @access Requires a valid refresh token cookie
+ */
+export async function refreshTokenController(req, res) {
+  try {
+   const refreshToken = req.cookies?.refreshToken;
+    if (!refreshToken) {
+      return sendError(res, "Unauthorized, Refresh token not found", 401)
+    }
+
+    const decoded = jwt.verify(refreshToken, configs.JWT_REFRESH_SECRET);
+
+    const user = await User.findById(decoded.id)
+
+    if (!user) {
+      return sendError(res, "Unauthorized, User not found", 401);
+    }
+
+    const accessToken = generateAccessToken(user);
+
+
+    res.cookie("accessToken", accessToken, {
+      httpOnly: true,
+      secure: configs.NODE_ENV === "production",
+      sameSite: "lax",
+      path: "/",
+      maxAge: 10 * 60 * 1000,
+    });
+
+    return sendSuccess(res, "Access token refreshed successfully", 200);
+
+  } catch (error) {
+    console.error("Refresh token error:", error);
     return sendError(res, "Internal server error", 500);
   }
 }
