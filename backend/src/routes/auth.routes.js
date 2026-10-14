@@ -1,6 +1,13 @@
 
 import { Router } from "express";
-import { loginController, registerController,logoutController ,getMeController} from "../controllers/auth.controller.js";
+import { loginController,
+     registerController,
+     logoutController ,
+     getMeController,
+     refreshTokenController
+    } from "../controllers/auth.controller.js";
+
+
 import { registerValidator,loginValidator } from "../validators/auth.validator.js";
 import { validateRequest } from "../middlewares/validate.middleware.js";
 import { authMiddleware } from "../middlewares/auth.middleware.js";
@@ -48,5 +55,14 @@ router.post("/logout",authMiddleware,logoutController)
  */
 
 router.get("/me",authMiddleware,getMeController)
+
+
+/**
+ * @route POST /api/auth/refresh-token
+ * @desc Refresh access token
+ * @access Requires refresh token cookie
+ */
+router.post("/refresh-token", refreshTokenController);
+
 
 export default router;
