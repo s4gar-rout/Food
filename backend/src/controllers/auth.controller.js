@@ -165,3 +165,33 @@ export async function logoutController(req, res) {
   }
 
 }
+
+
+/**
+ * @GET
+ * @ROUTE /api/auth/me
+ * @desc Get current logged in user profile
+ * @access Protected
+ */
+export async function getMeController(req,res) {
+  try{
+    const user = await User.findById(req.user.id);
+    if(!user){
+      return sendError(res,"User not found",404)
+    }
+    return sendSuccess(res,"User Profile",200,{
+      id:user._id,
+      fullname:user.fullname,
+      email:user.email,
+      phone:user.phone,
+      role:user.role,
+      profilePicture:user.profilePicture,
+    });
+
+  }catch(error){
+      console.error("Get profile error:", error);
+      return sendError(res, "Internal server error", 500);
+
+  }
+  
+}
